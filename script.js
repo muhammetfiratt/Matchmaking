@@ -45,7 +45,6 @@ onValue(dbRef, (snapshot) => {
         veriyiKaydet();
     }
 
-    // Otomatik Sıfırlama Kontrolü
     if (globalVeri.macTarihi) {
         const macZamani = new Date(globalVeri.macTarihi).getTime();
         const simdi = new Date().getTime();
@@ -140,7 +139,7 @@ window.oyVerGonder = function(event) {
     if (!globalVeri.yoklama) globalVeri.yoklama = {};
     globalVeri.yoklama[isim] = durum;
     veriyiKaydet();
-    alert("Oyinuz kaydedildi!");
+    alert("Oyunkaz kaydedildi!");
 }
 
 function yoklamaListeleriniGoster() {
@@ -187,6 +186,7 @@ function yoklamaListeleriniGoster() {
     document.getElementById('sayi-gelmeyen').innerText = `${gelmeyenSayisi} Kişi`;
 }
 
+// Oyuncu Yönetimi ve Güncelleme
 function oyunculariListeleYonetim() {
     const tbody = document.getElementById('yonetim-oyuncu-tablosu');
     if (!tbody) return;
@@ -195,16 +195,73 @@ function oyunculariListeleYonetim() {
     const oyuncular = globalVeri.oyuncular || {};
     for (let isim in oyuncular) {
         tbody.innerHTML += `
-            <tr class="hover:bg-slate-700/30">
+            <tr class="hover:bg-slate-700/30" id="row-${isim}">
                 <td class="p-3 font-medium text-white">${isim}</td>
                 <td class="p-3">${oyuncular[isim].pozisyon}</td>
                 <td class="p-3 font-semibold text-emerald-400">${oyuncular[isim].puan} / 10</td>
-                <td class="p-3 text-right">
+                <td class="p-3 text-right space-x-2">
+                    <button onclick="oyuncuDuzenleModu('${isim}', '${oyuncular[isim].pozisyon}', ${oyuncular[isim].puan})" class="text-amber-400 hover:text-amber-300 text-xs bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30 transition-colors">Düzenle</button>
                     <button onclick="oyuncuSil('${isim}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30 transition-colors">Sil</button>
                 </td>
             </tr>
         `;
     }
+}
+
+window.oyuncuDuzenleModu = function(eskiIsim, mevcutPozisyon, mevcutPuan) {
+    const row = document.getElementById(`row-${eskiIsim}`);
+    if (!row) return;
+
+    row.innerHTML = `
+        <td class="p-3">
+            <input type="text" id="edit-isim-${eskiIsim}" value="${eskiIsim}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs w-full">
+        </td>
+        <td class="p-3">
+            <select id="edit-pozisyon-${eskiIsim}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs">
+                <option value="Kale" ${mevcutPozisyon === 'Kale' ? 'selected' : ''}>Kale</option>
+                <option value="Defans" ${mevcutPozisyon === 'Defans' ? 'selected' : ''}>Defans</option>
+                <option value="Orta Saha" ${mevcutPozisyon === 'Orta Saha' ? 'selected' : ''}>Orta Saha</option>
+                <option value="Hücum" ${mevcutPozisyon === 'Hücum' ? 'selected' : ''}>Hücum</option>
+            </select>
+        </td>
+        <td class="p-3 text-emerald-400 font-semibold">${mevcutPuan} / 10</td>
+        <td class="p-3 text-right space-x-2">
+            <button onclick="oyuncuGuncelleKaydet('${eskiIsim}')" class="text-emerald-400 hover:text-emerald-300 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/30 transition-colors">Kaydet</button>
+            <button onclick="ekranlariGuncelle()" class="text-slate-400 hover:text-slate-300 text-xs bg-slate-700/50 px-3 py-1.5 rounded-lg transition-colors">İptal</button>
+        </td>
+    `;
+}
+
+window.oyuncuGuncelleKaydet = function(eskiIsim) {
+    const yeniIsim = document.getElementById(`edit-isim-${eskiIsim}`).value.trim();
+    const yeniPozisyon = document.getElementById(`edit-pozisyon-${eskiIsim}`).value;
+
+    if (!yeniIsim) {
+        alert("Oyuncu adı boş olamaz!");
+        return;
+    }
+
+    const mevcutPuan = globalVeri.oyuncular[eskiIsim].puan || 7;
+    const mevcutYoklamaDurumu = globalVeri.yoklama ? globalVeri.yoklama[eskiIsim] : null;
+
+    // Eğer isim değiştiyse eski ismi silip yeni ismi ekle
+    if (eskiIsim !== yeniIsim) {
+        if (globalVeri.oyuncular[yeniIsim]) {
+            alert("Bu isimde başka bir oyuncu zaten var!");
+            return;
+        }
+        delete globalVeri.oyuncular[eskiIsim];
+        if (globalVeri.yoklama && globalVeri.yoklama[eskiIsim]) {
+            delete globalVeri.yoklama[eskiIsim];
+        }
+    }
+
+    globalVeri.oyuncular[yeniIsim] = { pozisyon: yeniPozisyon, puan: mevcutPuan };
+    if (mevcutYoklamaDurumu) {
+        globalVeri.yoklama[yeniIsim] = mevcutYoklamaDurumu;
+    }
+
+    veriyiKaydet();
 }
 
 window.oyuncuEkle = function(event) {
