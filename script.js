@@ -1,208 +1,270 @@
-// Varsayılan Kadro Listesi ("Sen" yerine "Muhammet", sabit pozisyonlar kaldırıldı)
-const defaultPlayers = [
-    { id: 1, name: "Muhammet" },
-    { id: 2, name: "Mehmet" },
-    { id: 3, name: "Ali Can" },
-    { id: 4, name: "Ufuk" },
-    { id: 5, name: "Yasin" },
-    { id: 6, name: "Burak" },
-    { id: 7, name: "Zekeriya" },
-    { id: 8, name: "Cengiz" },
-    { id: 9, name: "İbrahim" },
-    { id: 10, name: "Yüksel" },
-    { id: 11, name: "Miraç" },
-    { id: 12, name: "Ömer Can" }
-];
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-// LocalStorage Verilerini Yükle veya Başlat
-let players = JSON.parse(localStorage.getItem('haliSahaPlayers')) || defaultPlayers;
-let votes = JSON.parse(localStorage.getItem('haliSahaVotes')) || {}; // { voterId: { targetPlayerId: rating } }
+// Firebase Yapılandırman
+const firebaseConfig = {
+    apiKey: "AIzaSyDy-Y4F9KV_wo2SYM9MmZOgrmlZc0kZqjU",
+    authDomain: "matchmaking-5f6d0.firebaseapp.com",
+    databaseURL: "https://matchmaking-5f6d0-default-rtdb.firebaseio.com",
+    projectId: "matchmaking-5f6d0",
+    storageBucket: "matchmaking-5f6d0.firebasestorage.app",
+    messagingSenderId: "368624820285",
+    appId: "1:368624820285:web:95ea32d33beb7fba214a54"
+};
 
-// DOM Elementleri
-const voterSelect = document.getElementById('voterSelect');
-const ratingSection = document.getElementById('ratingSection');
-const voterBadge = document.getElementById('voterBadge');
-const playerRatingList = document.getElementById('playerRatingList');
-const saveVotesBtn = document.getElementById('saveVotesBtn');
-const drawTeamsBtn = document.getElementById('drawTeamsBtn');
-const resultsContainer = document.getElementById('resultsContainer');
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-// Sayfa Yüklendiğinde
-document.addEventListener('DOMContentLoaded', () => {
-    populateVoterSelect();
-    voterSelect.addEventListener('change', handleVoterChange);
-    saveVotesBtn.addEventListener('click', saveVotes);
-    drawTeamsBtn.addEventListener('click', calculateAndDrawTeams);
-    document.getElementById('copyWhatsappBtn').addEventListener('click', copyWhatsappFormat);
+// Varsayılan 12 kişilik kadro
+const varsayilanOyuncular = {
+    "Muhammet": { pozisyon: "Orta Saha", puan: 8 },
+    "Mehmet": { pozisyon: "Defans", puan: 7 },
+    "Ali Can": { pozisyon: "Hücum", puan: 8 },
+    "Ufuk": { pozisyon: "Kale", puan: 8 },
+    "Yasin": { pozisyon: "Orta Saha", puan: 7 },
+    "Burak": { pozisyon: "Defans", puan: 6 },
+    "Zekeriya": { pozisyon: "Hücum", puan: 7 },
+    "Cengiz": { pozisyon: "Orta Saha", puan: 6 },
+    "İbrahim": { pozisyon: "Defans", puan: 7 },
+    "Yüksel": { pozisyon: "Kale", puan: 7 },
+    "Miraç": { pozisyon: "Hücum", puan: 6 },
+    "Ömer Can": { pozisyon: "Orta Saha", puan: 6 }
+};
+
+let globalVeri = { oyuncular: {}, yoklama: {} };
+
+// Firebase Dinleyicisi (Canlı Senkronizasyon)
+const dbRef = ref(db, 'haliSahaData');
+onValue(dbRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        globalVeri = data;
+        if (!globalVeri.oyuncular) {
+            globalVeri.oyuncular = varsayilanOyuncular;
+            veriyiKaydet();
+        }
+    } else {
+        globalVeri = { oyuncular: varsayilanOyuncular, yoklama: {} };
+        veriyiKaydet();
+    }
+    
+    document.getElementById('sync-status').innerText = "🟢 Canlı Bağlantı Aktif";
+    document.getElementById('sync-status').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+    
+    ekranlariGuncelle();
+}, (error) => {
+    document.getElementById('sync-status').innerText = "🔴 Bağlantı Hatası";
+    document.getElementById('sync-status').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30";
 });
 
-// Oy Veren Seçim Listesini Doldur
-function populateVoterSelect() {
-    voterSelect.innerHTML = '<option value="">-- Lütfen İsmini Seç --</option>';
-    players.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = p.name;
-        voterSelect.appendChild(opt);
+function veriyiKaydet() {
+    set(ref(db, 'haliSahaData'), globalVeri);
+}
+
+// Sekme Değiştirme Fonksiyonu
+window.tabDegistir = function(tabAdi) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById('tab-' + tabAdi).classList.remove('hidden');
+
+    ['yoklama', 'oyuncular', 'puanlama', 'kura'].forEach(t => {
+        const btn = document.getElementById('btn-' + t);
+        if (t === tabAdi) {
+            btn.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all bg-emerald-600 text-white shadow";
+        } else {
+            btn.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:bg-slate-700";
+        }
     });
 }
 
-// Seçilen Oyuncuya Göre Puanlama Listesini Aç
-function handleVoterChange() {
-    const voterId = voterSelect.value;
-    if (!voterId) {
-        ratingSection.classList.add('hidden');
+// Arayüzleri Güncelle
+function ekranlariGuncelle() {
+    oyunculariListeleYoklama();
+    oyunculariListeleYonetim();
+    oyunculariListelePuanlama();
+}
+
+// 1. Yoklama Ekranı
+function oyunculariListeleYoklama() {
+    const container = document.getElementById('yoklama-listesi');
+    container.innerHTML = '';
+
+    const oyuncular = globalVeri.oyuncular || {};
+    const yoklama = globalVeri.yoklama || {};
+
+    for (let isim in oyuncular) {
+        const durum = yoklama[isim] || 'belirsiz';
+        
+        let btnGelirimClass = "flex-1 py-2 px-3 rounded-lg font-medium text-sm border transition-all ";
+        let btnGelememClass = "flex-1 py-2 px-3 rounded-lg font-medium text-sm border transition-all ";
+
+        if (durum === 'gelirim') {
+            btnGelirimClass += "bg-emerald-600 text-white border-emerald-500 shadow-lg";
+            btnGelememClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+        } else if (durum === 'gelemem') {
+            btnGelirimClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+            btnGelememClass += "bg-rose-600 text-white border-rose-500 shadow-lg";
+        } else {
+            btnGelirimClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+            btnGelememClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+        }
+
+        container.innerHTML += `
+            <div class="bg-slate-900/60 border border-slate-700/60 p-4 rounded-xl flex flex-col justify-between gap-3">
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-white text-base">${isim}</span>
+                    <span class="text-xs px-2.5 py-1 rounded bg-slate-700 text-slate-300">${oyuncular[isim].pozisyon}</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="durumGuncelle('${isim}', 'gelirim')" class="${btnGelirimClass}">✅ Gelirim</button>
+                    <button onclick="durumGuncelle('${isim}', 'gelemem')" class="${btnGelememClass}">❌ Gelemem</button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+window.durumGuncelle = function(isim, durum) {
+    if (!globalVeri.yoklama) globalVeri.yoklama = {};
+    globalVeri.yoklama[isim] = durum;
+    veriyiKaydet();
+}
+
+// 2. Oyuncu Yönetimi
+function oyunculariListeleYonetim() {
+    const tbody = document.getElementById('yonetim-oyuncu-tablosu');
+    tbody.innerHTML = '';
+
+    const oyuncular = globalVeri.oyuncular || {};
+    for (let isim in oyuncular) {
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-700/30">
+                <td class="p-3 font-medium text-white">${isim}</td>
+                <td class="p-3">${oyuncular[isim].pozisyon}</td>
+                <td class="p-3 font-semibold text-emerald-400">${oyuncular[isim].puan} / 10</td>
+                <td class="p-3 text-right">
+                    <button onclick="oyuncuSil('${isim}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30 transition-colors">Sil</button>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+window.oyuncuEkle = function(event) {
+    event.preventDefault();
+    const isim = document.getElementById('yeni-isim').value.trim();
+    const pozisyon = document.getElementById('yeni-pozisyon').value;
+
+    if (!isim) return;
+
+    if (!globalVeri.oyuncular) globalVeri.oyuncular = {};
+    globalVeri.oyuncular[isim] = { pozisyon: pozisyon, puan: 7 };
+    veriyiKaydet();
+
+    document.getElementById('yeni-isim').value = '';
+}
+
+window.oyuncuSil = function(isim) {
+    if (confirm(`${isim} isimli oyuncuyu silmek istediğine emin misin?`)) {
+        delete globalVeri.oyuncular[isim];
+        if (globalVeri.yoklama) delete globalVeri.yoklama[isim];
+        veriyiKaydet();
+    }
+}
+
+// 3. Puanlama Ekranı
+function oyunculariListelePuanlama() {
+    const container = document.getElementById('puanlama-listesi');
+    container.innerHTML = '';
+
+    const oyuncular = globalVeri.oyuncular || {};
+    for (let isim in oyuncular) {
+        const puan = oyuncular[isim].puan || 7;
+        container.innerHTML += `
+            <div class="bg-slate-900/60 border border-slate-700/60 p-4 rounded-xl flex items-center justify-between gap-4">
+                <div>
+                    <h4 class="font-bold text-white">${isim}</h4>
+                    <span class="text-xs text-slate-400">${oyuncular[isim].pozisyon}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="puan-txt-${isim}" class="text-emerald-400 font-bold w-8 text-center">${puan}</span>
+                    <input type="range" min="1" max="10" value="${puan}" oninput="puanGuncelleAnlik('${isim}', this.value)" onchange="puanKaydet('${isim}', this.value)" class="w-28 sm:w-40 accent-emerald-500 cursor-pointer">
+                </div>
+            </div>
+        `;
+    }
+}
+
+window.puanGuncelleAnlik = function(isim, deger) {
+    document.getElementById(`puan-txt-${isim}`).innerText = deger;
+}
+
+window.puanKaydet = function(isim, deger) {
+    if (!globalVeri.oyuncular[isim]) globalVeri.oyuncular[isim] = {};
+    globalVeri.oyuncular[isim].puan = parseInt(deger);
+    veriyiKaydet();
+}
+
+// 4. Snake Draft Kura Algoritması
+window.kuraCek = function() {
+    const oyuncular = globalVeri.oyuncular || {};
+    const yoklama = globalVeri.yoklama || {};
+
+    let gelenler = Object.keys(oyuncular).filter(isim => yoklama[isim] === 'gelirim');
+
+    if (gelenler.length < 2) {
+        alert("Kura çekmek için yoklamada en az 2 kişi 'Gelirim' demelidir!");
         return;
     }
 
-    const voter = players.find(p => p.id == voterId);
-    voterBadge.textContent = `${voter.name} Oy Kullanıyor`;
-    
-    // Puanlama kartlarını oluştur (Kendi hariç)
-    playerRatingList.innerHTML = '';
-    const currentVoterVotes = votes[voterId] || {};
+    // Puana göre büyükten küçüğe sırala
+    gelenler.sort((a, b) => oyuncular[b].puan - oyuncular[a].puan);
 
-    players.filter(p => p.id != voterId).forEach(player => {
-        const existingRating = currentVoterVotes[player.id] || 3; // Varsayılan 3 puan
-        
-        const card = document.createElement('div');
-        card.className = "bg-slate-900/80 p-4 rounded-xl border border-slate-700 flex justify-between items-center";
-        card.innerHTML = `
-            <div>
-                <span class="font-bold text-slate-200 block">${player.name}</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <select data-target="${player.id}" class="rating-select bg-slate-800 text-amber-400 border border-slate-600 rounded-lg px-3 py-1 font-bold">
-                    ${[1, 2, 3, 4, 5].map(star => `<option value="${star}" ${star == existingRating ? 'selected' : ''}>${star} ⭐</option>`).join('')}
-                </select>
-            </div>
-        `;
-        playerRatingList.appendChild(card);
-    });
+    let takimA = [];
+    let takimB = [];
+    let toplamA = 0;
+    let toplamB = 0;
 
-    ratingSection.classList.remove('hidden');
-}
-
-// Oyları Kaydet
-function saveVotes() {
-    const voterId = voterSelect.value;
-    if (!voterId) return;
-
-    if (!votes[voterId]) votes[voterId] = {};
-
-    const ratingSelects = document.querySelectorAll('.rating-select');
-    ratingSelects.forEach(select => {
-        const targetId = select.getAttribute('data-target');
-        votes[voterId][targetId] = parseInt(select.value);
-    });
-
-    localStorage.setItem('haliSahaVotes', JSON.stringify(votes));
-    alert('✅ Oyların başarıyla kaydedildi!');
-    voterSelect.value = '';
-    ratingSection.classList.add('hidden');
-}
-
-// Her Oyuncunun Ortalama Puanını Hesapla
-function calculatePlayerAverages() {
-    return players.map(player => {
-        let total = 0;
-        let count = 0;
-
-        Object.keys(votes).forEach(voterId => {
-            if (voterId != player.id && votes[voterId][player.id]) {
-                total += votes[voterId][player.id];
-                count++;
-            }
-        });
-
-        const avg = count > 0 ? (total / count) : 3.0; // Hiç oy yoksa nötr 3.0
-        return { ...player, rating: parseFloat(avg.toFixed(1)) };
-    });
-}
-
-// Dengeli Kura Algoritması & Takım Kurma
-function calculateAndDrawTeams() {
-    const ratedPlayers = calculatePlayerAverages();
-    
-    // Oyuncuları Puana Göre Sırala
-    ratedPlayers.sort((a, b) => b.rating - a.rating);
-
-    let teamA = [];
-    let teamB = [];
-    let scoreA = 0;
-    let scoreB = 0;
-
-    // Yılan Dağıtım Algoritması (Snake Draft - Güçleri Birebir Dengelemek İçin)
-    ratedPlayers.forEach((p, index) => {
-        if (index % 4 === 0 || index % 4 === 3) {
-            if (scoreA <= scoreB) { teamA.push(p); scoreA += p.rating; }
-            else { teamB.push(p); scoreB += p.rating; }
+    gelenler.forEach((oyuncu, index) => {
+        let secilenTakim;
+        let turSira = index % 4;
+        if (turSira === 0 || turSira === 3) {
+            if (toplamA <= toplamB) secilenTakim = 'A'; else secilenTakim = 'B';
         } else {
-            if (scoreB <= scoreA) { teamB.push(p); scoreB += p.rating; }
-            else { teamA.push(p); scoreA += p.rating; }
+            if (toplamB <= toplamA) secilenTakim = 'B'; else secilenTakim = 'A';
+        }
+
+        const puan = oyuncular[oyuncu].puan;
+        if (secilenTakim === 'A') {
+            takimA.push({ isim: oyuncu, pozisyon: oyuncular[oyuncu].pozisyon, puan: puan });
+            toplamA += puan;
+        } else {
+            takimB.push({ isim: oyuncu, pozisyon: oyuncular[oyuncu].pozisyon, puan: puan });
+            toplamB += puan;
         }
     });
 
-    renderTeamsOnPitch(teamA, teamB, scoreA, scoreB);
-}
+    document.getElementById('kura-sonuclari').classList.remove('hidden');
 
-// Takımları Sahaya Düzme ve Dinamik Pozisyon Atama (2-1-2 Formatı)
-function renderTeamsOnPitch(teamA, teamB, scoreA, scoreB) {
-    document.getElementById('teamARating').textContent = (scoreA / teamA.length).toFixed(1);
-    document.getElementById('teamBRating').textContent = (scoreB / teamB.length).toFixed(1);
+    const listeA = document.getElementById('liste-takim-a');
+    const listeB = document.getElementById('liste-takim-b');
 
-    // Kura sonucunda takımdaki 6 oyuncuyu 2-1-2 formatına dinamik yerleştir
-    const assignPositions = (team) => ({
-        goalie: team[0],
-        defense: [team[1], team[2]],
-        midfield: team[3],
-        attack: [team[4], team[5] || team[4]]
+    listeA.innerHTML = '';
+    listeB.innerHTML = '';
+
+    takimA.forEach(o => {
+        listeA.innerHTML += `<li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+            <span class="font-medium text-white">${o.isim} <span class="text-xs text-slate-400">(${o.pozisyon})</span></span>
+            <span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">${o.puan} Puan</span>
+        </li>`;
     });
 
-    const posA = assignPositions(teamA);
-    const posB = assignPositions(teamB);
-
-    const renderCard = (p, role, isTeamA) => `
-        <div class="${isTeamA ? 'bg-red-600/90' : 'bg-blue-600/90'} text-white text-xs px-2.5 py-1.5 rounded-lg font-bold shadow-md text-center border border-white/20 min-w-[70px]">
-            <div>${p.name}</div>
-            <div class="text-[10px] opacity-90">${role} (${p.rating}⭐)</div>
-        </div>
-    `;
-
-    // A Takımı Pozisyonlama
-    document.getElementById('teamAGoalie').innerHTML = renderCard(posA.goalie, 'Kaleci', true);
-    document.getElementById('teamADefense').innerHTML = `${renderCard(posA.defense[0], 'Defans', true)} ${renderCard(posA.defense[1], 'Defans', true)}`;
-    document.getElementById('teamAMidfield').innerHTML = renderCard(posA.midfield, 'Orta Saha', true);
-    document.getElementById('teamAAttack').innerHTML = `${renderCard(posA.attack[0], 'Forvet', true)} ${renderCard(posA.attack[1], 'Forvet', true)}`;
-
-    // B Takımı Pozisyonlama
-    document.getElementById('teamBAttack').innerHTML = `${renderCard(posB.attack[0], 'Forvet', false)} ${renderCard(posB.attack[1], 'Forvet', false)}`;
-    document.getElementById('teamBMidfield').innerHTML = renderCard(posB.midfield, 'Orta Saha', false);
-    document.getElementById('teamBDefense').innerHTML = `${renderCard(posB.defense[0], 'Defans', false)} ${renderCard(posB.defense[1], 'Defans', false)}`;
-    document.getElementById('teamBGoalie').innerHTML = renderCard(posB.goalie, 'Kaleci', false);
-
-    resultsContainer.classList.remove('hidden');
-    resultsContainer.scrollIntoView({ behavior: 'smooth' });
-}
-
-// WhatsApp Metni Kopyalama
-function copyWhatsappFormat() {
-    const ratingA = document.getElementById('teamARating').textContent;
-    const ratingB = document.getElementById('teamBRating').textContent;
-
-    let text = `⚽ *PERŞEMBE MAÇI AKILLI KURA SONUÇLARI* ⚽\n\n`;
-    text += `🔴 *A TAKIMI* (Güç: ${ratingA})\n`;
-    document.querySelectorAll('#teamAGoalie, #teamADefense, #teamAMidfield, #teamAAttack').forEach(el => {
-        el.querySelectorAll('.font-bold').forEach(p => { if(p.textContent) text += `• ${p.textContent}\n`; });
+    takimB.forEach(o => {
+        listeB.innerHTML += `<li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+            <span class="font-medium text-white">${o.isim} <span class="text-xs text-slate-400">(${o.pozisyon})</span></span>
+            <span class="text-xs bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">${o.puan} Puan</span>
+        </li>`;
     });
 
-    text += `\n🔵 *B TAKIMI* (Güç: ${ratingB})\n`;
-    document.querySelectorAll('#teamBGoalie, #teamBDefense, #teamBMidfield, #teamBAttack').forEach(el => {
-        el.querySelectorAll('.font-bold').forEach(p => { if(p.textContent) text += `• ${p.textContent}\n`; });
-    });
-
-    text += `\nHilesiz, oylara göre dengeli kuradır. İki takıma da başarılar! 🔥`;
-
-    navigator.clipboard.writeText(text);
-    alert('📋 Kadro WhatsApp formatında panoya kopyalandı!');
+    document.getElementById('takim-a-ortalama').innerText = `Ort: ${(toplamA / (takimA.length || 1)).toFixed(1)}`;
+    document.getElementById('takim-b-ortalama').innerText = `Ort: ${(toplamB / (takimB.length || 1)).toFixed(1)}`;
 }
