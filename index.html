@@ -3,119 +3,405 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚽ Halı Saha Akıllı Kura Sistemi</title>
-    <!-- Tailwind CSS (Tasarım için) -->
+    <title>Halı Saha Kura & Yoklama Sistemi</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome (İkonlar için) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
+<body class="bg-slate-900 text-slate-100 min-h-screen">
 
-    <!-- Header -->
-    <header class="bg-slate-800 border-b border-slate-700 py-6 px-4 mb-8 text-center shadow-lg">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-emerald-400 flex items-center justify-center gap-3">
-            <i class="fa-solid font-soccer-ball"></i> ⚽ Halı Saha Akıllı Kura
-        </h1>
-        <p class="text-slate-400 text-sm mt-2">Arkadaşlarını puanla, hilesiz ve adil 2-1-2 kadrosunu otomatik kur!</p>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 grid gap-8">
-
-        <!-- Adım 1: Puan Veren Oyuncu Seçimi -->
-        <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-md">
-            <h2 class="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-user-check"></i> 1. Adım: Kim Oy Kullanıyor?
-            </h2>
-            <label class="block text-slate-300 mb-2 font-medium">Adını Seç:</label>
-            <select id="voterSelect" class="w-full bg-slate-900 text-white border border-slate-600 rounded-xl p-3 focus:outline-none focus:border-emerald-500 font-semibold">
-                <option value="">-- Lütfen İsmini Seç --</option>
-            </select>
-            <p class="text-xs text-slate-400 mt-2 italic">* Kendi adına oy veremezsin, sistem adını otomatik gizler.</p>
-        </section>
-
-        <!-- Adım 2: Puanlama Paneli -->
-        <section id="ratingSection" class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-md hidden">
-            <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                    <i class="fa-solid fa-star"></i> 2. Adım: Oyuncuları Puanla (1-5 Yıldız)
-                </h2>
-                <span id="voterBadge" class="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/30"></span>
+    <div class="max-w-4xl mx-auto p-4 sm:p-6">
+        <!-- Başlık -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-emerald-400 tracking-tight">⚽ Halı Saha Yönetim & Kura Sistemi</h1>
+            <p class="text-slate-400 text-sm mt-1">Ortak Havuz & Firebase Canlı Senkronizasyon</p>
+            <div id="sync-status" class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                Bağlantı kuruluyor...
             </div>
-            
-            <div id="playerRatingList" class="grid sm:grid-cols-2 gap-4">
-                <!-- Oyuncu puanlama kartları JS ile dolacak -->
-            </div>
+        </header>
 
-            <button id="saveVotesBtn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition duration-200 shadow-lg flex items-center justify-center gap-2">
-                <i class="fa-solid fa-floppy-disk"></i> Oylarımı Kaydet ve Tamamla
-            </button>
-        </section>
+        <!-- Navigasyon Sekmeleri -->
+        <div class="flex flex-wrap justify-center gap-2 mb-6 bg-slate-800 p-2 rounded-xl shadow-lg border border-slate-700">
+            <button onclick="tabDegistir('yoklama')" id="btn-yoklama" class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-emerald-600 text-white shadow">📅 Maç Yoklaması</button>
+            <button onclick="tabDegistir('oyuncular')" id="btn-oyuncular" class="px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:bg-slate-700">👥 Oyuncu Yönetimi</button>
+            <button onclick="tabDegistir('puanlama')" id="btn-puanlama" class="px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:bg-slate-700">⭐ Oyuncu Puanla</button>
+            <button onclick="tabDegistir('kura')" id="btn-kura" class="px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:bg-slate-700">⚖️ Adil Kura Çek</button>
+        </div>
 
-        <!-- Adım 3: Kura ve Sonuçlar -->
-        <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-md">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
-                        <i class="fa-solid fa-scale-balanced"></i> 3. Adım: Dengeli Takımları Oluştur
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-1">Verilen oyların ortalamasına göre en eşit kadro kurulur.</p>
-                </div>
-                <button id="drawTeamsBtn" class="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-xl transition duration-200 shadow-lg flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-dice"></i> Dengeli Kura Çek!
-                </button>
-            </div>
-
-            <!-- Saha ve Takımlar Görseli -->
-            <div id="resultsContainer" class="hidden">
+        <!-- 1. SEKME: MAÇ YOKLAMASI (Gelirim / Gelemem) -->
+        <div id="tab-yoklama" class="tab-content space-y-6">
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
+                <h2 class="text-xl font-bold text-white mb-2">Haftalık Maç Yoklaması</h2>
+                <p class="text-slate-400 text-sm mb-4">Maça kimler geliyor? İsmini seç ve durumunu belirle, herkesin ekranında anında güncellensin!</p>
                 
-                <!-- Güç Dengesi Kartı -->
-                <div class="grid grid-cols-2 gap-4 text-center mb-6">
-                    <div class="bg-red-950/40 border border-red-500/30 rounded-xl p-3">
-                        <span class="text-red-400 text-xs font-bold uppercase tracking-wider block">🔴 A Takımı Gücü</span>
-                        <span id="teamARating" class="text-2xl font-black text-white">0.0</span>
-                    </div>
-                    <div class="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3">
-                        <span class="text-blue-400 text-xs font-bold uppercase tracking-wider block">🔵 B Takımı Gücü</span>
-                        <span id="teamBRating" class="text-2xl font-black text-white">0.0</span>
-                    </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="yoklama-listesi">
+                    <!-- Dinamik yüklenecek -->
                 </div>
+            </div>
+        </div>
 
-                <!-- Yeşil Saha -->
-                <div class="relative bg-emerald-900 border-4 border-emerald-600 rounded-2xl p-4 min-h-[480px] flex flex-col justify-between overflow-hidden shadow-2xl">
-                    <!-- Ceza Sahaları Süslemeleri -->
-                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-20 border-b-2 border-x-2 border-white/20 rounded-b-3xl"></div>
-                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-20 border-t-2 border-x-2 border-white/20 rounded-t-3xl"></div>
-                    <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20 -translate-y-1/2"></div>
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 border-2 border-white/20 rounded-full"></div>
+        <!-- 2. SEKME: OYUNCU YÖNETİMİ (Ekle, Sil, Güncelle) -->
+        <div id="tab-oyuncular" class="tab-content hidden space-y-6">
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
+                <h2 class="text-xl font-bold text-white mb-4">Yeni Oyuncu Ekle</h2>
+                <form id="oyuncu-form" onsubmit="oyuncuEkle(event)" class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="yeni-isim" placeholder="Oyuncu Adı Soyadı" required class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500">
+                    <select id="yeni-pozisyon" class="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500">
+                        <option value="Kale">Kale</option>
+                        <option value="Defans">Defans</option>
+                        <option value="Orta Saha">Orta Saha</option>
+                        <option value="Hücum">Hücum</option>
+                    </select>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors">Ekle</button>
+                </form>
+            </div>
 
-                    <!-- A Takımı (Üst Yarı Saha - Kırmızı) -->
-                    <div class="relative z-10 grid gap-2">
-                        <div class="text-center font-bold text-red-400 text-sm tracking-widest uppercase">🔴 A TAKIMI (2-1-2)</div>
-                        <div id="teamAGoalie" class="flex justify-center"></div>
-                        <div id="teamADefense" class="flex justify-around px-8"></div>
-                        <div id="teamAMidfield" class="flex justify-center"></div>
-                        <div id="teamAAttack" class="flex justify-around px-8"></div>
-                    </div>
-
-                    <!-- B Takımı (Alt Yarı Saha - Mavi) -->
-                    <div class="relative z-10 grid gap-2 mt-8">
-                        <div id="teamBAttack" class="flex justify-around px-8"></div>
-                        <div id="teamBMidfield" class="flex justify-center"></div>
-                        <div id="teamBDefense" class="flex justify-around px-8"></div>
-                        <div id="teamBGoalie" class="flex justify-center"></div>
-                        <div class="text-center font-bold text-blue-400 text-sm tracking-widest uppercase mt-1">🔵 B TAKIMI (2-1-2)</div>
-                    </div>
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
+                <h2 class="text-xl font-bold text-white mb-4">Mevcut Oyuncu Listesi</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-700/50 text-slate-400 uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Adı</th>
+                                <th class="p-3">Pozisyon</th>
+                                <th class="p-3">Ortalama Puan</th>
+                                <th class="p-3 text-right">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="yonetim-oyuncu-tablosu" class="divide-y divide-slate-700">
+                            <!-- Dinamik yüklenecek -->
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+        </div>
 
-                <!-- WhatsApp Kopyala Butonu -->
-                <button id="copyWhatsappBtn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition duration-200 flex items-center justify-center gap-2">
-                    <i class="fa-brands fa-whatsapp text-xl"></i> Kadroyu WhatsApp İçin Kopyala
+        <!-- 3. SEKME: OYUNCU PUANLAMA -->
+        <div id="tab-puanlama" class="tab-content hidden space-y-6">
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
+                <h2 class="text-xl font-bold text-white mb-2">Oyuncu Puanlama Havuzu</h2>
+                <p class="text-slate-400 text-sm mb-4">Oyuncuların yetenek puanlarını 1 ile 10 arasında oyla. Bu puanlar kura çekiminde güç dengesini belirleyecek.</p>
+                
+                <div class="space-y-4" id="puanlama-listesi">
+                    <!-- Dinamik yüklenecek -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. SEKME: ADİL KURA ÇEK -->
+        <div id="tab-kura" class="tab-content hidden space-y-6">
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700 text-center">
+                <h2 class="text-xl font-bold text-white mb-2">Güç Dengeleyici Snake Draft Kura</h2>
+                <p class="text-slate-400 text-sm mb-6">Sadece yoklamada <span class="text-emerald-400 font-semibold">"Gelirim"</span> işaretleyen oyuncular arasından adil takım dağılımı yapılır.</p>
+                
+                <button onclick="kuraCek()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-lg px-8 py-3.5 rounded-xl shadow-lg transition-all transform hover:scale-105">
+                    🎲 Kadroları Dağıt & Kura Çek
                 </button>
             </div>
-        </section>
-    </main>
 
-    <!-- Uygulama Mantığı (JS) -->
-    <script src="script.js"></script>
+            <!-- Takım Sonuçları -->
+            <div id="kura-sonuclari" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+                <!-- A Takımı -->
+                <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-blue-500/30">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                        <h3 class="text-lg font-bold text-blue-400">🔵 A Takımı</h3>
+                        <span id="takim-a-ortalama" class="text-xs bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full font-medium">Ort: 0.0</span>
+                    </div>
+                    <ul id="liste-takim-a" class="space-y-2.5"></ul>
+                </div>
+                <!-- B Takımı -->
+                <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-rose-500/30">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                        <h3 class="text-lg font-bold text-rose-400">🔴 B Takımı</h3>
+                        <span id="takim-b-ortalama" class="text-xs bg-rose-500/20 text-rose-300 px-2.5 py-1 rounded-full font-medium">Ort: 0.0</span>
+                    </div>
+                    <ul id="liste-takim-b" class="space-y-2.5"></ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase ve Uygulama Mantığı -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Firebase Yapılandırman
+        const firebaseConfig = {
+            apiKey: "AIzaSyDy-Y4F9KV_wo2SYM9MmZOgrmlZc0kZqjU",
+            authDomain: "matchmaking-5f6d0.firebaseapp.com",
+            databaseURL: "https://matchmaking-5f6d0-default-rtdb.firebaseio.com",
+            projectId: "matchmaking-5f6d0",
+            storageBucket: "matchmaking-5f6d0.firebasestorage.app",
+            messagingSenderId: "368624820285",
+            appId: "1:368624820285:web:95ea32d33beb7fba214a54"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Varsayılan 12 kişilik liste (İlk açılışta veritabanı boşsa yüklenecek)
+        const varsayilanOyuncular = {
+            "Muhammet": { pozisyon: "Orta Saha", puan: 8 },
+            "Mehmet": { pozisyon: "Defans", puan: 7 },
+            "Ali Can": { pozisyon: "Hücum", puan: 8 },
+            "Ufuk": { pozisyon: "Kale", puan: 8 },
+            "Yasin": { pozisyon: "Orta Saha", puan: 7 },
+            "Burak": { pozisyon: "Defans", puan: 6 },
+            "Zekeriya": { pozisyon: "Hücum", puan: 7 },
+            "Cengiz": { pozisyon: "Orta Saha", puan: 6 },
+            "İbrahim": { pozisyon: "Defans", puan: 7 },
+            "Yüksel": { pozisyon: "Kale", puan: 7 },
+            "Miraç": { pozisyon: "Hücum", puan: 6 },
+            "Ömer Can": { pozisyon: "Orta Saha", puan: 6 }
+        };
+
+        let globalVeri = { oyuncular: {}, yoklama: {} };
+
+        // Firebase Dinleyicisi (Canlı Senkronizasyon)
+        const dbRef = ref(db, 'haliSahaData');
+        onValue(dbRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                globalVeri = data;
+                if (!globalVeri.oyuncular) {
+                    globalVeri.oyuncular = varsayilanOyuncular;
+                    veriyiKaydet();
+                }
+            } else {
+                // İlk kurulum
+                globalVeri = { oyuncular: varsayilanOyuncular, yoklama: {} };
+                veriyiKaydet();
+            }
+            
+            document.getElementById('sync-status').innerText = "🟢 Canlı Bağlantı Aktif";
+            document.getElementById('sync-status').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+            
+            ekranlariGuncelle();
+        }, (error) => {
+            document.getElementById('sync-status').innerText = "🔴 Bağlantı Hatası";
+            document.getElementById('sync-status').className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30";
+        });
+
+        function veriyiKaydet() {
+            set(ref(db, 'haliSahaData'), globalVeri);
+        }
+
+        // Sekme Değiştirme Fonksiyonu
+        window.tabDegistir = function(tabAdi) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabAdi).classList.remove('hidden');
+
+            ['yoklama', 'oyuncular', 'puanlama', 'kura'].forEach(t => {
+                const btn = document.getElementById('btn-' + t);
+                if (t === tabAdi) {
+                    btn.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all bg-emerald-600 text-white shadow";
+                } else {
+                    btn.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:bg-slate-700";
+                }
+            });
+        }
+
+        // Arayüzleri Güncelle
+        function ekranlariGuncelle() {
+            oyunculariListeleYoklama();
+            oyunculariListeleYonetim();
+            oyunculariListelePuanlama();
+        }
+
+        // 1. Yoklama Ekranı Render
+        function oyunculariListeleYoklama() {
+            const container = document.getElementById('yoklama-listesi');
+            container.innerHTML = '';
+
+            const oyuncular = globalVeri.oyuncular || {};
+            const yoklama = globalVeri.yoklama || {};
+
+            for (let isim in oyuncular) {
+                const durum = yoklama[isim] || 'belirsiz'; // 'gelirim', 'gelemem', 'belirsiz'
+                
+                let btnGelirimClass = "flex-1 py-2 px-3 rounded-lg font-medium text-sm border transition-all ";
+                let btnGelememClass = "flex-1 py-2 px-3 rounded-lg font-medium text-sm border transition-all ";
+
+                if (durum === 'gelirim') {
+                    btnGelirimClass += "bg-emerald-600 text-white border-emerald-500 shadow-lg";
+                    btnGelememClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+                } else if (durum === 'gelemem') {
+                    btnGelirimClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+                    btnGelememClass += "bg-rose-600 text-white border-rose-500 shadow-lg";
+                } else {
+                    btnGelirimClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+                    btnGelememClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+                }
+
+                container.innerHTML += `
+                    <div class="bg-slate-900/60 border border-slate-700/60 p-4 rounded-xl flex flex-col justify-between gap-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white text-base">${isim}</span>
+                            <span class="text-xs px-2.5 py-1 rounded bg-slate-700 text-slate-300">${oyuncular[isim].pozisyon}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="durumGuncelle('${isim}', 'gelirim')" class="${btnGelirimClass}">✅ Gelirim</button>
+                            <button onclick="durumGuncelle('${isim}', 'gelemem')" class="${btnGelememClass}">❌ Gelemem</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        window.durumGuncelle = function(isim, durum) {
+            if (!globalVeri.yoklama) globalVeri.yoklama = {};
+            globalVeri.yoklama[isim] = durum;
+            veriyiKaydet();
+        }
+
+        // 2. Oyuncu Yönetimi Render & İşlemler
+        function oyunculariListeleYonetim() {
+            const tbody = document.getElementById('yonetim-oyuncu-tablosu');
+            tbody.innerHTML = '';
+
+            const oyuncular = globalVeri.oyuncular || {};
+            for (let isim in oyuncular) {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/30">
+                        <td class="p-3 font-medium text-white">${isim}</td>
+                        <td class="p-3">${oyuncular[isim].pozisyon}</td>
+                        <td class="p-3 font-semibold text-emerald-400">${oyuncular[isim].puan} / 10</td>
+                        <td class="p-3 text-right">
+                            <button onclick="oyuncuSil('${isim}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30 transition-colors">Sil</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        window.oyuncuEkle = function(event) {
+            event.preventDefault();
+            const isim = document.getElementById('yeni-isim').value.trim();
+            const pozisyon = document.getElementById('yeni-pozisyon').value;
+
+            if (!isim) return;
+
+            if (!globalVeri.oyuncular) globalVeri.oyuncular = {};
+            globalVeri.oyuncular[isim] = { pozisyon: pozisyon, puan: 7 }; // Varsayılan puan 7
+            veriyiKaydet();
+
+            document.getElementById('yeni-isim').value = '';
+        }
+
+        window.oyuncuSil = function(isim) {
+            if (confirm(`${isim} isimli oyuncuyu silmek istediğine emin misin?`)) {
+                delete globalVeri.oyuncular[isim];
+                if (globalVeri.yoklama) delete globalVeri.yoklama[isim];
+                veriyiKaydet();
+            }
+        }
+
+        // 3. Puanlama Ekranı Render
+        function oyunculariListelePuanlama() {
+            const container = document.getElementById('puanlama-listesi');
+            container.innerHTML = '';
+
+            const oyuncular = globalVeri.oyuncular || {};
+            for (let isim in oyuncular) {
+                const puan = oyuncular[isim].puan || 7;
+                container.innerHTML += `
+                    <div class="bg-slate-900/60 border border-slate-700/60 p-4 rounded-xl flex items-center justify-between gap-4">
+                        <div>
+                            <h4 class="font-bold text-white">${isim}</h4>
+                            <span class="text-xs text-slate-400">${oyuncular[isim].pozisyon}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span id="puan-txt-${isim}" class="text-emerald-400 font-bold w-8 text-center">${puan}</span>
+                            <input type="range" min="1" max="10" value="${puan}" oninput="puanGuncelleAnlik('${isim}', this.value)" onchange="puanKaydet('${isim}', this.value)" class="w-28 sm:w-40 accent-emerald-500 cursor-pointer">
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        window.puanGuncelleAnlik = function(isim, deger) {
+            document.getElementById(`puan-txt-${isim}`).innerText = deger;
+        }
+
+        window.puanKaydet = function(isim, deger) {
+            if (!globalVeri.oyuncular[isim]) globalVeri.oyuncular[isim] = {};
+            globalVeri.oyuncular[isim].puan = parseInt(deger);
+            veriyiKaydet();
+        }
+
+        // 4. Snake Draft Kura Algoritması
+        window.kuraCek = function() {
+            const oyuncular = globalVeri.oyuncular || {};
+            const yoklama = globalVeri.yoklama || {};
+
+            // Sadece "gelirim" diyenleri al
+            let gelenler = Object.keys(oyuncular).filter(isim => yoklama[isim] === 'gelirim');
+
+            if (gelenler.length < 2) {
+                alert("Kura çekmek için yoklamada en az 2 kişi 'Gelirim' demelidir!");
+                return;
+            }
+
+            // Oyuncuları puana göre büyükten küçüğe sırala
+            gelenler.sort((a, b) => oyuncular[b].puan - oyuncular[a].puan);
+
+            let takimA = [];
+            let takimB = [];
+            let toplamA = 0;
+            let toplamB = 0;
+
+            // Snake Draft (Yılan Dağıtım) Mantığı
+            gelenler.forEach((oyuncu, index) => {
+                let secilenTakim;
+                // Sıra mantığı: 0->A, 1->B, 2->B, 3->A (Yılan mantığı ile dengeleme)
+                let turSira = index % 4;
+                if (turSira === 0 || turSira === 3) {
+                    if (toplamA <= toplamB) secilenTakim = 'A'; else secilenTakim = 'B';
+                } else {
+                    if (toplamB <= toplamA) secilenTakim = 'B'; else secilenTakim = 'A';
+                }
+
+                const puan = oyuncular[oyuncu].puan;
+                if (secilenTakim === 'A') {
+                    takimA.push({ isim: oyuncu, pozisyon: oyuncular[oyuncu].pozisyon, puan: puan });
+                    toplamA += puan;
+                } else {
+                    takimB.push({ isim: oyuncu, pozisyon: oyuncular[oyuncu].pozisyon, puan: puan });
+                    toplamB += puan;
+                }
+            });
+
+            // Sonuçları Ekrana Yazdır
+            document.getElementById('kura-sonuclari').classList.remove('hidden');
+
+            const listeA = document.getElementById('liste-takim-a');
+            const listeB = document.getElementById('liste-takim-b');
+
+            listeA.innerHTML = '';
+            listeB.innerHTML = '';
+
+            takimA.forEach(o => {
+                listeA.innerHTML += `<li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+                    <span class="font-medium text-white">${o.isim} <span class="text-xs text-slate-400">(${o.pozisyon})</span></span>
+                    <span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">${o.puan} Puan</span>
+                </li>`;
+            });
+
+            takimB.forEach(o => {
+                listeB.innerHTML += `<li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+                    <span class="font-medium text-white">${o.isim} <span class="text-xs text-slate-400">(${o.pozisyon})</span></span>
+                    <span class="text-xs bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">${o.puan} Puan</span>
+                </li>`;
+            });
+
+            document.getElementById('takim-a-ortalama').innerText = `Ort: ${(toplamA / (takimA.length || 1)).toFixed(1)}`;
+            document.getElementById('takim-b-ortalama').innerText = `Ort: ${(toplamB / (takimB.length || 1)).toFixed(1)}`;
+        }
+    </script>
 </body>
 </html>
