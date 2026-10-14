@@ -200,7 +200,7 @@ function yoklamaListeleriniGoster() {
     document.getElementById('sayi-cevap-vermeyen').innerText = `${cevapVermeyenSayisi} Kişi`;
 }
 
-// Oyuncu Yönetimi (Toplam Oyuncu Sayısı Gösterimi ile)
+// Oyuncu Yönetimi (Toplam Oyuncu Sayısı Düzeltildi)
 function oyunculariListeleYonetim() {
     const tbody = document.getElementById('yonetim-oyuncu-tablosu');
     const sayacBadge = document.getElementById('toplam-oyuncu-sayisi');
@@ -215,9 +215,9 @@ function oyunculariListeleYonetim() {
     for (let isim of oyuncuIsimleri) {
         tbody.innerHTML += `
             <tr class="hover:bg-slate-700/30" id="row-${isim}">
-                <td class="p-3 font-medium text-white">${isim}</td>
-                <td class="p-3">${oyuncular[isim].pozisyon}</td>
-                <td class="p-3 text-right space-x-2">
+                <td class="p-3 font-medium text-white w-1/3">${isim}</td>
+                <td class="p-3 w-1/3">${oyuncular[isim].pozisyon}</td>
+                <td class="p-3 text-right space-x-2 w-1/3">
                     <button onclick="oyuncuDuzenleModu('${isim}', '${oyuncular[isim].pozisyon}')" class="text-amber-400 hover:text-amber-300 text-xs bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30 transition-colors">Düzenle</button>
                     <button onclick="oyuncuSil('${isim}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30 transition-colors">Sil</button>
                 </td>
@@ -231,10 +231,10 @@ window.oyuncuDuzenleModu = function(eskiIsim, mevcutPozisyon) {
     if (!row) return;
 
     row.innerHTML = `
-        <td class="p-3">
+        <td class="p-3 w-1/3">
             <input type="text" id="edit-isim-${eskiIsim}" value="${eskiIsim}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs w-full">
         </td>
-        <td class="p-3">
+        <td class="p-3 w-1/3">
             <select id="edit-pozisyon-${eskiIsim}" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs">
                 <option value="Kale" ${mevcutPozisyon === 'Kale' ? 'selected' : ''}>Kale</option>
                 <option value="Defans" ${mevcutPozisyon === 'Defans' ? 'selected' : ''}>Defans</option>
@@ -242,7 +242,7 @@ window.oyuncuDuzenleModu = function(eskiIsim, mevcutPozisyon) {
                 <option value="Hücum" ${mevcutPozisyon === 'Hücum' ? 'selected' : ''}>Hücum</option>
             </select>
         </td>
-        <td class="p-3 text-right space-x-2">
+        <td class="p-3 text-right space-x-2 w-1/3">
             <button onclick="oyuncuGuncelleKaydet('${eskiIsim}')" class="text-emerald-400 hover:text-emerald-300 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/30 transition-colors">Kaydet</button>
             <button onclick="ekranlariGuncelle()" class="text-slate-400 hover:text-slate-300 text-xs bg-slate-700/50 px-3 py-1.5 rounded-lg transition-colors">İptal</button>
         </td>
