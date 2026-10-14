@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ Halı Saha Akıllı Kura Sistemi</title>
+    <!-- Tailwind CSS (Tasarım için) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome (İkonlar için) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 py-6 px-4 mb-8 text-center shadow-lg">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-emerald-400 flex items-center justify-center gap-3">
+            <i class="fa-solid font-soccer-ball"></i> ⚽ Halı Saha Akıllı Kura
+        </h1>
+        <p class="text-slate-400 text-sm mt-2">Arkadaşlarını puanla, hilesiz ve adil 2-1-2 kadrosunu otomatik kur!</p>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 grid gap-8">
+
+        <!-- Adım 1: Puan Veren Oyuncu Seçimi -->
+        <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-md">
+            <h2 class="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-user-check"></i> 1. Adım: Kim Oy Kullanıyor?
+            </h2>
+            <label class="block text-slate-300 mb-2 font-medium">Adını Seç:</label>
+            <select id="voterSelect" class="w-full bg-slate-900 text-white border border-slate-600 rounded-xl p-3 focus:outline-none focus:border-emerald-500 font-semibold">
+                <option value="">-- Lütfen İsmini Seç --</option>
+            </select>
+            <p class="text-xs text-slate-400 mt-2 italic">* Kendi adına oy veremezsin, sistem adını otomatik gizler.</p>
+        </section>
+
+        <!-- Adım 2: Puanlama Paneli -->
+        <section id="ratingSection" class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-md hidden">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                    <i class="fa-solid fa-star"></i> 2. Adım: Oyuncuları Puanla (1-5 Yıldız)
+                </h2>
+                <span id="voterBadge" class="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/30"></span>
+            </div>
+            
+            <div id="playerRatingList" class="grid sm:grid-cols-2 gap-4">
+                <!-- Oyuncu puanlama kartları JS ile dolacak -->
+            </div>
+
+            <button id="saveVotesBtn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition duration-200 shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Oylarımı Kaydet ve Tamamla
+            </button>
+        </section>
+
+        <!-- Adım 3: Kura ve Sonuçlar -->
+        <section class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-md">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-scale-balanced"></i> 3. Adım: Dengeli Takımları Oluştur
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Verilen oyların ortalamasına göre en eşit kadro kurulur.</p>
+                </div>
+                <button id="drawTeamsBtn" class="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-xl transition duration-200 shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-dice"></i> Dengeli Kura Çek!
+                </button>
+            </div>
+
+            <!-- Saha ve Takımlar Görseli -->
+            <div id="resultsContainer" class="hidden">
+                
+                <!-- Güç Dengesi Kartı -->
+                <div class="grid grid-cols-2 gap-4 text-center mb-6">
+                    <div class="bg-red-950/40 border border-red-500/30 rounded-xl p-3">
+                        <span class="text-red-400 text-xs font-bold uppercase tracking-wider block">🔴 A Takımı Gücü</span>
+                        <span id="teamARating" class="text-2xl font-black text-white">0.0</span>
+                    </div>
+                    <div class="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3">
+                        <span class="text-blue-400 text-xs font-bold uppercase tracking-wider block">🔵 B Takımı Gücü</span>
+                        <span id="teamBRating" class="text-2xl font-black text-white">0.0</span>
+                    </div>
+                </div>
+
+                <!-- Yeşil Saha -->
+                <div class="relative bg-emerald-900 border-4 border-emerald-600 rounded-2xl p-4 min-h-[480px] flex flex-col justify-between overflow-hidden shadow-2xl">
+                    <!-- Ceza Sahaları Süslemeleri -->
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-20 border-b-2 border-x-2 border-white/20 rounded-b-3xl"></div>
+                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-20 border-t-2 border-x-2 border-white/20 rounded-t-3xl"></div>
+                    <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20 -translate-y-1/2"></div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 border-2 border-white/20 rounded-full"></div>
+
+                    <!-- A Takımı (Üst Yarı Saha - Kırmızı) -->
+                    <div class="relative z-10 grid gap-2">
+                        <div class="text-center font-bold text-red-400 text-sm tracking-widest uppercase">🔴 A TAKIMI (2-1-2)</div>
+                        <div id="teamAGoalie" class="flex justify-center"></div>
+                        <div id="teamADefense" class="flex justify-around px-8"></div>
+                        <div id="teamAMidfield" class="flex justify-center"></div>
+                        <div id="teamAAttack" class="flex justify-around px-8"></div>
+                    </div>
+
+                    <!-- B Takımı (Alt Yarı Saha - Mavi) -->
+                    <div class="relative z-10 grid gap-2 mt-8">
+                        <div id="teamBAttack" class="flex justify-around px-8"></div>
+                        <div id="teamBMidfield" class="flex justify-center"></div>
+                        <div id="teamBDefense" class="flex justify-around px-8"></div>
+                        <div id="teamBGoalie" class="flex justify-center"></div>
+                        <div class="text-center font-bold text-blue-400 text-sm tracking-widest uppercase mt-1">🔵 B TAKIMI (2-1-2)</div>
+                    </div>
+                </div>
+
+                <!-- WhatsApp Kopyala Butonu -->
+                <button id="copyWhatsappBtn" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-xl"></i> Kadroyu WhatsApp İçin Kopyala
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Uygulama Mantığı (JS) -->
+    <script src="script.js"></script>
+</body>
+</html>
