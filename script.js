@@ -1,17 +1,17 @@
-// Varsayılan Kadro Listesi
+// Varsayılan Kadro Listesi ("Sen" yerine "Muhammet", sabit pozisyonlar kaldırıldı)
 const defaultPlayers = [
-    { id: 1, name: "Sen", position: "Orta Saha" },
-    { id: 2, name: "Mehmet", position: "Orta Saha" },
-    { id: 3, name: "Ali Can", position: "Kaleci" },
-    { id: 4, name: "Ufuk", position: "Defans" },
-    { id: 5, name: "Yasin", position: "Forvet" },
-    { id: 6, name: "Burak", position: "Forvet" },
-    { id: 7, name: "Zekeriya", position: "Forvet" },
-    { id: 8, name: "Cengiz", position: "Defans" },
-    { id: 9, name: "İbrahim", position: "Defans" },
-    { id: 10, name: "Yüksel", position: "Forvet" },
-    { id: 11, name: "Miraç", position: "Orta Saha" },
-    { id: 12, name: "Ömer Can", position: "Defans" }
+    { id: 1, name: "Muhammet" },
+    { id: 2, name: "Mehmet" },
+    { id: 3, name: "Ali Can" },
+    { id: 4, name: "Ufuk" },
+    { id: 5, name: "Yasin" },
+    { id: 6, name: "Burak" },
+    { id: 7, name: "Zekeriya" },
+    { id: 8, name: "Cengiz" },
+    { id: 9, name: "İbrahim" },
+    { id: 10, name: "Yüksel" },
+    { id: 11, name: "Miraç" },
+    { id: 12, name: "Ömer Can" }
 ];
 
 // LocalStorage Verilerini Yükle veya Başlat
@@ -42,7 +42,7 @@ function populateVoterSelect() {
     players.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.name} (${p.position})`;
+        opt.textContent = p.name;
         voterSelect.appendChild(opt);
     });
 }
@@ -56,7 +56,7 @@ function handleVoterChange() {
     }
 
     const voter = players.find(p => p.id == voterId);
-    voterBadge.textContent = `${voter.name} Oynuyor`;
+    voterBadge.textContent = `${voter.name} Oy Kullanıyor`;
     
     // Puanlama kartlarını oluştur (Kendi hariç)
     playerRatingList.innerHTML = '';
@@ -70,7 +70,6 @@ function handleVoterChange() {
         card.innerHTML = `
             <div>
                 <span class="font-bold text-slate-200 block">${player.name}</span>
-                <span class="text-xs text-slate-400">${player.position}</span>
             </div>
             <div class="flex items-center gap-1">
                 <select data-target="${player.id}" class="rating-select bg-slate-800 text-amber-400 border border-slate-600 rounded-lg px-3 py-1 font-bold">
@@ -121,7 +120,7 @@ function calculatePlayerAverages() {
     });
 }
 
-// Dengeli Kura Algoritması & Takım Bitişi
+// Dengeli Kura Algoritması & Takım Kurma
 function calculateAndDrawTeams() {
     const ratedPlayers = calculatePlayerAverages();
     
@@ -147,29 +146,40 @@ function calculateAndDrawTeams() {
     renderTeamsOnPitch(teamA, teamB, scoreA, scoreB);
 }
 
-// Takımları Sahaya Düzme (2-1-2 Formatı)
+// Takımları Sahaya Düzme ve Dinamik Pozisyon Atama (2-1-2 Formatı)
 function renderTeamsOnPitch(teamA, teamB, scoreA, scoreB) {
     document.getElementById('teamARating').textContent = (scoreA / teamA.length).toFixed(1);
     document.getElementById('teamBRating').textContent = (scoreB / teamB.length).toFixed(1);
 
-    const renderCard = (p, isTeamA) => `
+    // Kura sonucunda takımdaki 6 oyuncuyu 2-1-2 formatına dinamik yerleştir
+    const assignPositions = (team) => ({
+        goalie: team[0],
+        defense: [team[1], team[2]],
+        midfield: team[3],
+        attack: [team[4], team[5] || team[4]]
+    });
+
+    const posA = assignPositions(teamA);
+    const posB = assignPositions(teamB);
+
+    const renderCard = (p, role, isTeamA) => `
         <div class="${isTeamA ? 'bg-red-600/90' : 'bg-blue-600/90'} text-white text-xs px-2.5 py-1.5 rounded-lg font-bold shadow-md text-center border border-white/20 min-w-[70px]">
             <div>${p.name}</div>
-            <div class="text-[10px] opacity-80">${p.rating} ⭐</div>
+            <div class="text-[10px] opacity-90">${role} (${p.rating}⭐)</div>
         </div>
     `;
 
     // A Takımı Pozisyonlama
-    document.getElementById('teamAGoalie').innerHTML = renderCard(teamA[0], true);
-    document.getElementById('teamADefense').innerHTML = `${renderCard(teamA[1], true)} ${renderCard(teamA[2], true)}`;
-    document.getElementById('teamAMidfield').innerHTML = renderCard(teamA[3], true);
-    document.getElementById('teamAAttack').innerHTML = `${renderCard(teamA[4], true)} ${renderCard(teamA[5] || teamA[4], true)}`;
+    document.getElementById('teamAGoalie').innerHTML = renderCard(posA.goalie, 'Kaleci', true);
+    document.getElementById('teamADefense').innerHTML = `${renderCard(posA.defense[0], 'Defans', true)} ${renderCard(posA.defense[1], 'Defans', true)}`;
+    document.getElementById('teamAMidfield').innerHTML = renderCard(posA.midfield, 'Orta Saha', true);
+    document.getElementById('teamAAttack').innerHTML = `${renderCard(posA.attack[0], 'Forvet', true)} ${renderCard(posA.attack[1], 'Forvet', true)}`;
 
     // B Takımı Pozisyonlama
-    document.getElementById('teamBAttack').innerHTML = `${renderCard(teamB[4], false)} ${renderCard(teamB[5] || teamB[4], false)}`;
-    document.getElementById('teamBMidfield').innerHTML = renderCard(teamB[3], false);
-    document.getElementById('teamBDefense').innerHTML = `${renderCard(teamB[1], false)} ${renderCard(teamB[2], false)}`;
-    document.getElementById('teamBGoalie').innerHTML = renderCard(teamB[0], false);
+    document.getElementById('teamBAttack').innerHTML = `${renderCard(posB.attack[0], 'Forvet', false)} ${renderCard(posB.attack[1], 'Forvet', false)}`;
+    document.getElementById('teamBMidfield').innerHTML = renderCard(posB.midfield, 'Orta Saha', false);
+    document.getElementById('teamBDefense').innerHTML = `${renderCard(posB.defense[0], 'Defans', false)} ${renderCard(posB.defense[1], 'Defans', false)}`;
+    document.getElementById('teamBGoalie').innerHTML = renderCard(posB.goalie, 'Kaleci', false);
 
     resultsContainer.classList.remove('hidden');
     resultsContainer.scrollIntoView({ behavior: 'smooth' });
