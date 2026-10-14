@@ -139,22 +139,26 @@ window.oyVerGonder = function(event) {
     if (!globalVeri.yoklama) globalVeri.yoklama = {};
     globalVeri.yoklama[isim] = durum;
     veriyiKaydet();
-    alert("Oyunkaz kaydedildi!");
+    alert(`${isim} için oyunuz (${durum === 'gelirim' ? 'Gelirim' : 'Gelemem'}) güncellendi!`);
 }
 
 function yoklamaListeleriniGoster() {
     const listeGelenler = document.getElementById('liste-gelenler');
     const listeGelmeyenler = document.getElementById('liste-gelmeyenler');
-    if (!listeGelenler || !listeGelmeyenler) return;
+    const listeCevapVermeyenler = document.getElementById('liste-cevap-vermeyenler');
+    
+    if (!listeGelenler || !listeGelmeyenler || !listeCevapVermeyenler) return;
     
     listeGelenler.innerHTML = '';
     listeGelmeyenler.innerHTML = '';
+    listeCevapVermeyenler.innerHTML = '';
 
     const oyuncular = globalVeri.oyuncular || {};
     const yoklama = globalVeri.yoklama || {};
 
     let gelenSayisi = 0;
     let gelmeyenSayisi = 0;
+    let cevapVermeyenSayisi = 0;
 
     for (let isim in oyuncular) {
         const durum = yoklama[isim];
@@ -164,7 +168,7 @@ function yoklamaListeleriniGoster() {
             gelenSayisi++;
             listeGelenler.innerHTML += `
                 <li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
-                    <span class="font-medium text-white">${isim} <span class="text-xs text-slate-400">(${pozisyon})</span></span>
+                    <span class="font-medium text-white text-xs sm:text-sm">${isim} <span class="text-xs text-slate-400">(${pozisyon})</span></span>
                     <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Geliyor</span>
                 </li>
             `;
@@ -172,35 +176,49 @@ function yoklamaListeleriniGoster() {
             gelmeyenSayisi++;
             listeGelmeyenler.innerHTML += `
                 <li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
-                    <span class="font-medium text-white">${isim} <span class="text-xs text-slate-400">(${pozisyon})</span></span>
+                    <span class="font-medium text-white text-xs sm:text-sm">${isim} <span class="text-xs text-slate-400">(${pozisyon})</span></span>
                     <span class="text-xs bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">Gelemiyor</span>
+                </li>
+            `;
+        } else {
+            cevapVermeyenSayisi++;
+            listeCevapVermeyenler.innerHTML += `
+                <li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+                    <span class="font-medium text-white text-xs sm:text-sm">${isim} <span class="text-xs text-slate-400">(${pozisyon})</span></span>
+                    <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">Belirsiz</span>
                 </li>
             `;
         }
     }
 
-    if (gelenSayisi === 0) listeGelenler.innerHTML = '<li class="text-xs text-slate-400 p-2">Henüz "Gelirim" diyen kimse yok.</li>';
-    if (gelmeyenSayisi === 0) listeGelmeyenler.innerHTML = '<li class="text-xs text-slate-400 p-2">Henüz "Gelemem" diyen kimse yok.</li>';
+    if (gelenSayisi === 0) listeGelenler.innerHTML = '<li class="text-xs text-slate-400 p-2">Henüz yoklama verilmedi.</li>';
+    if (gelmeyenSayisi === 0) listeGelmeyenler.innerHTML = '<li class="text-xs text-slate-400 p-2">Henüz "Gelemem" diyen yok.</li>';
+    if (cevapVermeyenSayisi === 0) listeCevapVermeyenler.innerHTML = '<li class="text-xs text-emerald-400 p-2">Herkes oy kullandı!</li>';
 
     document.getElementById('sayi-gelen').innerText = `${gelenSayisi} Kişi`;
     document.getElementById('sayi-gelmeyen').innerText = `${gelmeyenSayisi} Kişi`;
+    document.getElementById('sayi-cevap-vermeyen').innerText = `${cevapVermeyenSayisi} Kişi`;
 }
 
-// Oyuncu Yönetimi ve Güncelleme
+// Oyuncu Yönetimi (Toplam Oyuncu Sayısı Gösterimi ile)
 function oyunculariListeleYonetim() {
     const tbody = document.getElementById('yonetim-oyuncu-tablosu');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+    const sayacBadge = document.getElementById('toplam-oyuncu-sayisi');
+    if (!tbody || !sayacBadge) return;
 
+    tbody.innerHTML = '';
     const oyuncular = globalVeri.oyuncular || {};
-    for (let isim in oyuncular) {
+    const oyuncuIsimleri = Object.keys(oyuncular);
+
+    sayacBadge.innerText = `Toplam: ${oyuncuIsimleri.length} Oyuncu`;
+
+    for (let isim of oyuncuIsimleri) {
         tbody.innerHTML += `
             <tr class="hover:bg-slate-700/30" id="row-${isim}">
                 <td class="p-3 font-medium text-white">${isim}</td>
                 <td class="p-3">${oyuncular[isim].pozisyon}</td>
-                <td class="p-3 font-semibold text-emerald-400">${oyuncular[isim].puan} / 10</td>
                 <td class="p-3 text-right space-x-2">
-                    <button onclick="oyuncuDuzenleModu('${isim}', '${oyuncular[isim].pozisyon}', ${oyuncular[isim].puan})" class="text-amber-400 hover:text-amber-300 text-xs bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30 transition-colors">Düzenle</button>
+                    <button onclick="oyuncuDuzenleModu('${isim}', '${oyuncular[isim].pozisyon}')" class="text-amber-400 hover:text-amber-300 text-xs bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30 transition-colors">Düzenle</button>
                     <button onclick="oyuncuSil('${isim}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 hover:bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30 transition-colors">Sil</button>
                 </td>
             </tr>
@@ -208,7 +226,7 @@ function oyunculariListeleYonetim() {
     }
 }
 
-window.oyuncuDuzenleModu = function(eskiIsim, mevcutPozisyon, mevcutPuan) {
+window.oyuncuDuzenleModu = function(eskiIsim, mevcutPozisyon) {
     const row = document.getElementById(`row-${eskiIsim}`);
     if (!row) return;
 
@@ -224,7 +242,6 @@ window.oyuncuDuzenleModu = function(eskiIsim, mevcutPozisyon, mevcutPuan) {
                 <option value="Hücum" ${mevcutPozisyon === 'Hücum' ? 'selected' : ''}>Hücum</option>
             </select>
         </td>
-        <td class="p-3 text-emerald-400 font-semibold">${mevcutPuan} / 10</td>
         <td class="p-3 text-right space-x-2">
             <button onclick="oyuncuGuncelleKaydet('${eskiIsim}')" class="text-emerald-400 hover:text-emerald-300 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/30 transition-colors">Kaydet</button>
             <button onclick="ekranlariGuncelle()" class="text-slate-400 hover:text-slate-300 text-xs bg-slate-700/50 px-3 py-1.5 rounded-lg transition-colors">İptal</button>
@@ -241,10 +258,9 @@ window.oyuncuGuncelleKaydet = function(eskiIsim) {
         return;
     }
 
-    const mevcutPuan = globalVeri.oyuncular[eskiIsim].puan || 7;
+    const mevcutPuan = globalVeri.oyuncular[eskiIsim] ? (globalVeri.oyuncular[eskiIsim].puan || 7) : 7;
     const mevcutYoklamaDurumu = globalVeri.yoklama ? globalVeri.yoklama[eskiIsim] : null;
 
-    // Eğer isim değiştiyse eski ismi silip yeni ismi ekle
     if (eskiIsim !== yeniIsim) {
         if (globalVeri.oyuncular[yeniIsim]) {
             alert("Bu isimde başka bir oyuncu zaten var!");
