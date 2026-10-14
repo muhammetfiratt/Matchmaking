@@ -93,7 +93,6 @@ function ekranlariGuncelle() {
     oyunculariListelePuanlama();
     macTarihiniGoster();
 
-    // Veritabanında kayıtlı son takımlar varsa ekranda kalıcı olarak göster
     if (globalVeri.takimA && globalVeri.takimB && globalVeri.takimA.length > 0) {
         takimlariEkranaBas(globalVeri.takimA, globalVeri.takimB, globalVeri.toplamA || 0, globalVeri.toplamB || 0);
     }
@@ -355,7 +354,13 @@ window.kuraCek = function() {
         return;
     }
 
-    gelenler.sort((a, b) => oyuncular[b].puan - oyuncular[a].puan);
+    // Puanları eşit olan oyuncuları rastgele karıştır, farklı olanları puana göre sırala
+    gelenler.sort((a, b) => {
+        if (oyuncular[b].puan === oyuncular[a].puan) {
+            return Math.random() - 0.5;
+        }
+        return oyuncular[b].puan - oyuncular[a].puan;
+    });
 
     let takimA = [];
     let takimB = [];
@@ -381,7 +386,6 @@ window.kuraCek = function() {
         }
     });
 
-    // Oluşan takımları ortak veritabanına kaydediyoruz (kalıcı olması için)
     globalVeri.takimA = takimA;
     globalVeri.takimB = takimB;
     globalVeri.toplamA = toplamA;
