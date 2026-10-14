@@ -29,7 +29,7 @@ const varsayilanOyuncular = {
     "Ömer Can": { pozisyon: "Orta Saha", puan: 6 }
 };
 
-let globalVeri = { oyuncular: {}, yoklama: {}, macTarihi: "" };
+let globalVeri = { oyuncular: {}, yoklama: {}, macTarihi: "", takimA: [], takimB: [], toplamA: 0, toplamB: 0 };
 
 const dbRef = ref(db, 'haliSahaData');
 onValue(dbRef, (snapshot) => {
@@ -41,7 +41,7 @@ onValue(dbRef, (snapshot) => {
             veriyiKaydet();
         }
     } else {
-        globalVeri = { oyuncular: varsayilanOyuncular, yoklama: {}, macTarihi: "" };
+        globalVeri = { oyuncular: varsayilanOyuncular, yoklama: {}, macTarihi: "", takimA: [], takimB: [], toplamA: 0, toplamB: 0 };
         veriyiKaydet();
     }
 
@@ -51,6 +51,10 @@ onValue(dbRef, (snapshot) => {
         if (simdi >= macZamani) {
             globalVeri.yoklama = {};
             globalVeri.macTarihi = "";
+            globalVeri.takimA = [];
+            globalVeri.takimB = [];
+            globalVeri.toplamA = 0;
+            globalVeri.toplamB = 0;
             veriyiKaydet();
         }
     }
@@ -88,6 +92,11 @@ function ekranlariGuncelle() {
     oyunculariListeleYonetim();
     oyunculariListelePuanlama();
     macTarihiniGoster();
+
+    // Veritabanında kayıtlı son takımlar varsa ekranda kalıcı olarak göster
+    if (globalVeri.takimA && globalVeri.takimB && globalVeri.takimA.length > 0) {
+        takimlariEkranaBas(globalVeri.takimA, globalVeri.takimB, globalVeri.toplamA || 0, globalVeri.toplamB || 0);
+    }
 }
 
 function macTarihiniGoster() {
@@ -200,7 +209,6 @@ function yoklamaListeleriniGoster() {
     document.getElementById('sayi-cevap-vermeyen').innerText = `${cevapVermeyenSayisi} Kişi`;
 }
 
-// Oyuncu Yönetimi (Toplam Oyuncu Sayısı Düzeltildi)
 function oyunculariListeleYonetim() {
     const tbody = document.getElementById('yonetim-oyuncu-tablosu');
     const sayacBadge = document.getElementById('toplam-oyuncu-sayisi');
@@ -373,10 +381,26 @@ window.kuraCek = function() {
         }
     });
 
-    document.getElementById('kura-sonuclari').classList.remove('hidden');
+    // Oluşan takımları ortak veritabanına kaydediyoruz (kalıcı olması için)
+    globalVeri.takimA = takimA;
+    globalVeri.takimB = takimB;
+    globalVeri.toplamA = toplamA;
+    globalVeri.toplamB = toplamB;
+    veriyiKaydet();
+
+    takimlariEkranaBas(takimA, takimB, toplamA, toplamB);
+}
+
+function takimlariEkranaBas(takimA, takimB, toplamA, toplamB) {
+    const kuraSonuclariDiv = document.getElementById('kura-sonuclari');
+    if (!kuraSonuclariDiv) return;
+
+    kuraSonuclariDiv.classList.remove('hidden');
 
     const listeA = document.getElementById('liste-takim-a');
     const listeB = document.getElementById('liste-takim-b');
+
+    if (!listeA || !listeB) return;
 
     listeA.innerHTML = '';
     listeB.innerHTML = '';
@@ -395,6 +419,8 @@ window.kuraCek = function() {
         </li>`;
     });
 
-    document.getElementById('takim-a-ortalama').innerText = `Ort: ${(toplamA / (takimA.length || 1)).toFixed(1)}`;
-    document.getElementById('takim-b-ortalama').innerText = `Ort: ${(toplamB / (takimB.length || 1)).toFixed(1)}`;
+    const ortA = document.getElementById('takim-a-ortalama');
+    const ortB = document.getElementById('takim-b-ortalama');
+    if (ortA) ortA.innerText = `Ort: ${(toplamA / (takimA.length || 1)).toFixed(1)}`;
+    if (ortB) ortB.innerText = `Ort: ${(toplamB / (takimB.length || 1)).toFixed(1)}`;
 }
