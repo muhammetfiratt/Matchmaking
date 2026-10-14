@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-// Firebase Yapılandırman
 const firebaseConfig = {
     apiKey: "AIzaSyDy-Y4F9KV_wo2SYM9MmZOgrmlZc0kZqjU",
     authDomain: "matchmaking-5f6d0.firebaseapp.com",
@@ -15,7 +14,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Varsayılan 12 kişilik kadro
 const varsayilanOyuncular = {
     "Muhammet": { pozisyon: "Orta Saha", puan: 8 },
     "Mehmet": { pozisyon: "Defans", puan: 7 },
@@ -33,7 +31,6 @@ const varsayilanOyuncular = {
 
 let globalVeri = { oyuncular: {}, yoklama: {}, macTarihi: "" };
 
-// Firebase Dinleyicisi (Canlı Senkronizasyon)
 const dbRef = ref(db, 'haliSahaData');
 onValue(dbRef, (snapshot) => {
     const data = snapshot.val();
@@ -48,16 +45,14 @@ onValue(dbRef, (snapshot) => {
         veriyiKaydet();
     }
 
-    // OTOMATİK SIFIRLAMA KONTROLÜ: Maç vakti geldiyse yoklamayı sıfırla
+    // Otomatik Sıfırlama Kontrolü
     if (globalVeri.macTarihi) {
         const macZamani = new Date(globalVeri.macTarihi).getTime();
         const simdi = new Date().getTime();
         if (simdi >= macZamani) {
-            // Maç vakti geldi/geçti, oylamayı sıfırla ve tarihi temizle
             globalVeri.yoklama = {};
             globalVeri.macTarihi = "";
             veriyiKaydet();
-            alert("Maç vakti geldiği için yoklama sıfırlandı!");
         }
     }
     
@@ -74,7 +69,6 @@ function veriyiKaydet() {
     set(ref(db, 'haliSahaData'), globalVeri);
 }
 
-// Sekme Değiştirme Fonksiyonu
 window.tabDegistir = function(tabAdi) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.getElementById('tab-' + tabAdi).classList.remove('hidden');
@@ -89,7 +83,6 @@ window.tabDegistir = function(tabAdi) {
     });
 }
 
-// Arayüzleri Güncelle
 function ekranlariGuncelle() {
     oyuncuDropdownDoldur();
     yoklamaListeleriniGoster();
@@ -98,10 +91,11 @@ function ekranlariGuncelle() {
     macTarihiniGoster();
 }
 
-// Maç Tarihini ve Sayaç Durumunu Göster
 function macTarihiniGoster() {
     const input = document.getElementById('match-date-picker');
     const countdown = document.getElementById('match-countdown');
+    if (!input || !countdown) return;
+    
     if (globalVeri.macTarihi) {
         input.value = globalVeri.macTarihi;
         const kalanZaman = new Date(globalVeri.macTarihi).toLocaleString('tr-TR');
@@ -123,9 +117,9 @@ window.macTarihiniKaydet = function() {
     alert("Maç tarihi başarıyla kaydedildi!");
 }
 
-// 1. Yoklama Ekranı - Dropdown Doldurma ve Canlı Listeler
 function oyuncuDropdownDoldur() {
     const select = document.getElementById('secilen-oyuncu');
+    if (!select) return;
     const seciliDeger = select.value;
     select.innerHTML = '<option value="">Oyuncu Seçin...</option>';
 
@@ -146,11 +140,13 @@ window.oyVerGonder = function(event) {
     if (!globalVeri.yoklama) globalVeri.yoklama = {};
     globalVeri.yoklama[isim] = durum;
     veriyiKaydet();
+    alert("Oyinuz kaydedildi!");
 }
 
 function yoklamaListeleriniGoster() {
     const listeGelenler = document.getElementById('liste-gelenler');
     const listeGelmeyenler = document.getElementById('liste-gelmeyenler');
+    if (!listeGelenler || !listeGelmeyenler) return;
     
     listeGelenler.innerHTML = '';
     listeGelmeyenler.innerHTML = '';
@@ -191,9 +187,9 @@ function yoklamaListeleriniGoster() {
     document.getElementById('sayi-gelmeyen').innerText = `${gelmeyenSayisi} Kişi`;
 }
 
-// 2. Oyuncu Yönetimi
 function oyunculariListeleYonetim() {
     const tbody = document.getElementById('yonetim-oyuncu-tablosu');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     const oyuncular = globalVeri.oyuncular || {};
@@ -233,9 +229,9 @@ window.oyuncuSil = function(isim) {
     }
 }
 
-// 3. Puanlama Ekranı
 function oyunculariListelePuanlama() {
     const container = document.getElementById('puanlama-listesi');
+    if (!container) return;
     container.innerHTML = '';
 
     const oyuncular = globalVeri.oyuncular || {};
@@ -257,7 +253,8 @@ function oyunculariListelePuanlama() {
 }
 
 window.puanGuncelleAnlik = function(isim, deger) {
-    document.getElementById(`puan-txt-${isim}`).innerText = deger;
+    const txt = document.getElementById(`puan-txt-${isim}`);
+    if (txt) txt.innerText = deger;
 }
 
 window.puanKaydet = function(isim, deger) {
@@ -266,7 +263,6 @@ window.puanKaydet = function(isim, deger) {
     veriyiKaydet();
 }
 
-// 4. Snake Draft Kura Algoritması
 window.kuraCek = function() {
     const oyuncular = globalVeri.oyuncular || {};
     const yoklama = globalVeri.yoklama || {};
