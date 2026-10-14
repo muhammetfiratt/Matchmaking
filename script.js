@@ -31,7 +31,7 @@ const varsayilanOyuncular = {
     "Ömer Can": { pozisyon: "Orta Saha", puan: 6 }
 };
 
-let globalVeri = { oyuncular: {}, yoklama: {} };
+let globalVeri = { oyuncular: {}, yoklama: {}, macTarihi: "" };
 
 // Firebase Dinleyicisi (Canlı Senkronizasyon)
 const dbRef = ref(db, 'haliSahaData');
@@ -44,8 +44,21 @@ onValue(dbRef, (snapshot) => {
             veriyiKaydet();
         }
     } else {
-        globalVeri = { oyuncular: varsayilanOyuncular, yoklama: {} };
+        globalVeri = { oyuncular: varsayilanOyuncular, yoklama: {}, macTarihi: "" };
         veriyiKaydet();
+    }
+
+    // OTOMATİK SIFIRLAMA KONTROLÜ: Maç vakti geldiyse yoklamayı sıfırla
+    if (globalVeri.macTarihi) {
+        const macZamani = new Date(globalVeri.macTarihi).getTime();
+        const simdi = new Date().getTime();
+        if (simdi >= macZamani) {
+            // Maç vakti geldi/geçti, oylamayı sıfırla ve tarihi temizle
+            globalVeri.yoklama = {};
+            globalVeri.macTarihi = "";
+            veriyiKaydet();
+            alert("Maç vakti geldiği için yoklama sıfırlandı!");
+        }
     }
     
     document.getElementById('sync-status').innerText = "🟢 Canlı Bağlantı Aktif";
@@ -78,55 +91,104 @@ window.tabDegistir = function(tabAdi) {
 
 // Arayüzleri Güncelle
 function ekranlariGuncelle() {
-    oyunculariListeleYoklama();
+    oyuncuDropdownDoldur();
+    yoklamaListeleriniGoster();
     oyunculariListeleYonetim();
     oyunculariListelePuanlama();
+    macTarihiniGoster();
 }
 
-// 1. Yoklama Ekranı
-function oyunculariListeleYoklama() {
-    const container = document.getElementById('yoklama-listesi');
-    container.innerHTML = '';
+// Maç Tarihini ve Sayaç Durumunu Göster
+function macTarihiniGoster() {
+    const input = document.getElementById('match-date-picker');
+    const countdown = document.getElementById('match-countdown');
+    if (globalVeri.macTarihi) {
+        input.value = globalVeri.macTarihi;
+        const kalanZaman = new Date(globalVeri.macTarihi).toLocaleString('tr-TR');
+        countdown.innerText = `Seçilen Maç Zamanı: ${kalanZaman}`;
+    } else {
+        input.value = "";
+        countdown.innerText = "Henüz maç tarihi belirlenmedi.";
+    }
+}
+
+window.macTarihiniKaydet = function() {
+    const tarihDegeri = document.getElementById('match-date-picker').value;
+    if (!tarihDegeri) {
+        alert("Lütfen geçerli bir tarih ve saat seçin!");
+        return;
+    }
+    globalVeri.macTarihi = tarihDegeri;
+    veriyiKaydet();
+    alert("Maç tarihi başarıyla kaydedildi!");
+}
+
+// 1. Yoklama Ekranı - Dropdown Doldurma ve Canlı Listeler
+function oyuncuDropdownDoldur() {
+    const select = document.getElementById('secilen-oyuncu');
+    const seciliDeger = select.value;
+    select.innerHTML = '<option value="">Oyuncu Seçin...</option>';
+
+    const oyuncular = globalVeri.oyuncular || {};
+    for (let isim in oyuncular) {
+        select.innerHTML += `<option value="${isim}">${isim} (${oyuncular[isim].pozisyon})</option>`;
+    }
+    select.value = seciliDeger;
+}
+
+window.oyVerGonder = function(event) {
+    event.preventDefault();
+    const isim = document.getElementById('secilen-oyuncu').value;
+    const durum = document.getElementById('secilen-durum').value;
+
+    if (!isim) return;
+
+    if (!globalVeri.yoklama) globalVeri.yoklama = {};
+    globalVeri.yoklama[isim] = durum;
+    veriyiKaydet();
+}
+
+function yoklamaListeleriniGoster() {
+    const listeGelenler = document.getElementById('liste-gelenler');
+    const listeGelmeyenler = document.getElementById('liste-gelmeyenler');
+    
+    listeGelenler.innerHTML = '';
+    listeGelmeyenler.innerHTML = '';
 
     const oyuncular = globalVeri.oyuncular || {};
     const yoklama = globalVeri.yoklama || {};
 
+    let gelenSayisi = 0;
+    let gelmeyenSayisi = 0;
+
     for (let isim in oyuncular) {
-        const durum = yoklama[isim] || 'belirsiz';
-        
-        let btnGelirimClass = "flex-1 py-2 px-3 rounded-lg font-medium text-sm border transition-all ";
-        let btnGelememClass = "flex-1 py-2 px-3 rounded-lg font-medium text-sm border transition-all ";
+        const durum = yoklama[isim];
+        const pozisyon = oyuncular[isim].pozisyon;
 
         if (durum === 'gelirim') {
-            btnGelirimClass += "bg-emerald-600 text-white border-emerald-500 shadow-lg";
-            btnGelememClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+            gelenSayisi++;
+            listeGelenler.innerHTML += `
+                <li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+                    <span class="font-medium text-white">${isim} <span class="text-xs text-slate-400">(${pozisyon})</span></span>
+                    <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Geliyor</span>
+                </li>
+            `;
         } else if (durum === 'gelemem') {
-            btnGelirimClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
-            btnGelememClass += "bg-rose-600 text-white border-rose-500 shadow-lg";
-        } else {
-            btnGelirimClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
-            btnGelememClass += "bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700";
+            gelmeyenSayisi++;
+            listeGelmeyenler.innerHTML += `
+                <li class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/40">
+                    <span class="font-medium text-white">${isim} <span class="text-xs text-slate-400">(${pozisyon})</span></span>
+                    <span class="text-xs bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">Gelemiyor</span>
+                </li>
+            `;
         }
-
-        container.innerHTML += `
-            <div class="bg-slate-900/60 border border-slate-700/60 p-4 rounded-xl flex flex-col justify-between gap-3">
-                <div class="flex justify-between items-center">
-                    <span class="font-bold text-white text-base">${isim}</span>
-                    <span class="text-xs px-2.5 py-1 rounded bg-slate-700 text-slate-300">${oyuncular[isim].pozisyon}</span>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="durumGuncelle('${isim}', 'gelirim')" class="${btnGelirimClass}">✅ Gelirim</button>
-                    <button onclick="durumGuncelle('${isim}', 'gelemem')" class="${btnGelememClass}">❌ Gelemem</button>
-                </div>
-            </div>
-        `;
     }
-}
 
-window.durumGuncelle = function(isim, durum) {
-    if (!globalVeri.yoklama) globalVeri.yoklama = {};
-    globalVeri.yoklama[isim] = durum;
-    veriyiKaydet();
+    if (gelenSayisi === 0) listeGelenler.innerHTML = '<li class="text-xs text-slate-400 p-2">Henüz "Gelirim" diyen kimse yok.</li>';
+    if (gelmeyenSayisi === 0) listeGelmeyenler.innerHTML = '<li class="text-xs text-slate-400 p-2">Henüz "Gelemem" diyen kimse yok.</li>';
+
+    document.getElementById('sayi-gelen').innerText = `${gelenSayisi} Kişi`;
+    document.getElementById('sayi-gelmeyen').innerText = `${gelmeyenSayisi} Kişi`;
 }
 
 // 2. Oyuncu Yönetimi
@@ -216,7 +278,6 @@ window.kuraCek = function() {
         return;
     }
 
-    // Puana göre büyükten küçüğe sırala
     gelenler.sort((a, b) => oyuncular[b].puan - oyuncular[a].puan);
 
     let takimA = [];
