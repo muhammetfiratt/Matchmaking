@@ -31,7 +31,6 @@
 
         <!-- 1. SEKME: MAÇ YOKLAMASI -->
         <div id="tab-yoklama" class="tab-content space-y-6">
-            <!-- Maç Tarih ve Saat Ayarı -->
             <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
                 <h2 class="text-xl font-bold text-white mb-2">📅 Maç Tarihi ve Saati</h2>
                 <p class="text-slate-400 text-sm mb-4">Maç günü ve saati geldiğinde anket otomatik olarak sıfırlanır.</p>
@@ -42,7 +41,6 @@
                 <div id="match-countdown" class="text-xs text-amber-400 mt-2 font-medium"></div>
             </div>
 
-            <!-- Yoklama Oy Verme Formu -->
             <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
                 <h2 class="text-xl font-bold text-white mb-2">📝 Oy Kullan / Yoklama Ver</h2>
                 <p class="text-slate-400 text-sm mb-4">Listeden adını seç, gelip gelmeyeceğini belirle ve oyunu gönder!</p>
@@ -65,9 +63,7 @@
                 </form>
             </div>
 
-            <!-- Canlı Katılım Listeleri -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Gelenler -->
                 <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-emerald-500/30">
                     <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
                         <h3 class="text-lg font-bold text-emerald-400">✅ Gelenler</h3>
@@ -75,7 +71,6 @@
                     </div>
                     <ul id="liste-gelenler" class="space-y-2"></ul>
                 </div>
-                <!-- Gelmeyenler -->
                 <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-rose-500/30">
                     <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
                         <h3 class="text-lg font-bold text-rose-400">❌ Gelmeyenler</h3>
@@ -103,15 +98,15 @@
             </div>
 
             <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
-                <h2 class="text-xl font-bold text-white mb-4">Mevcut Oyuncu Listesi</h2>
+                <h2 class="text-xl font-bold text-white mb-4">Mevcut Oyuncu Listesi & Güncelleme</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-300">
                         <thead class="bg-slate-700/50 text-slate-400 uppercase text-xs">
                             <tr>
                                 <th class="p-3">Adı</th>
                                 <th class="p-3">Pozisyon</th>
-                                <th class="p-3">Ortalama Puan</th>
-                                <th class="p-3 text-right">İşlem</th>
+                                <th class="p-3">Puan</th>
+                                <th class="p-3 text-right">İşlemler</th>
                             </tr>
                         </thead>
                         <tbody id="yonetim-oyuncu-tablosu" class="divide-y divide-slate-700"></tbody>
@@ -140,7 +135,6 @@
                 </button>
             </div>
 
-            <!-- Takım Sonuçları -->
             <div id="kura-sonuclari" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
                 <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-blue-500/30">
                     <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
